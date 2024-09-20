@@ -3,11 +3,10 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, BufReader};
 use std::path::PathBuf;
-/// Simple program to greet a person
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// File path
     #[arg(short = 'c')]
     count_bytes: bool,
 
