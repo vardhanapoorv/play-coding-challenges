@@ -4,7 +4,7 @@ use std::process::Command;
 
 #[test]
 fn test_all_steps() {
-    let steps = vec!["step1"];
+    let steps = vec!["step1", "step2"];
     for step in steps {
         let json_files = get_json_files_in_dir(step);
         println!("json_files: {:?}", json_files);
@@ -18,6 +18,16 @@ fn test_all_steps() {
                     "Expected valid JSON to pass."
                 );
             } else if file.file_name().unwrap() == "invalid.json" {
+                assert!(
+                    output.contains("Is valid json: false"),
+                    "Expected invalid JSON to fail."
+                );
+            } else if file.file_name().unwrap() == "valid2.json" {
+                assert!(
+                    output.contains("Is valid json: true"),
+                    "Expected valid JSON to pass."
+                );
+            } else if file.file_name().unwrap() == "invalid2.json" {
                 assert!(
                     output.contains("Is valid json: false"),
                     "Expected invalid JSON to fail."
