@@ -18,24 +18,65 @@ impl SpecialChars {
     pub const QUOTE: char = '"';
 }
 
+enum JsonValueType {
+    STRING,
+    NUMBER,
+    OBJECT,
+    ARRAY,
+    BOOLEAN,
+    NULL,
+}
+
 fn main() {
     let args = Args::parse();
     let mut stack = Vec::<char>::new();
+    let mut stack_new = Vec::<char>::new();
     let mut is_valid_json = false;
     let mut key_str = String::new();
     let mut keys = Vec::<String>::new();
     let mut is_non_quoted_value = false;
+    let mut read_key = false;
+    let mut key_val = String::new();
+
+    for val in args.object.chars() {
+        if read_key {
+            if val == SpecialChars::QUOTE {
+                read_key = false;
+            } else {
+                key_val += val.to_string().as_str();
+            }
+        }
+        if val == SpecialChars::OPEN_BRACE {
+            stack_new.push(val);
+        } else if val == SpecialChars::QUOTE {
+            stack_new.push(val);
+            read_key = true;
+        }
+    }
 
     for val in args.object.chars() {
         if val == SpecialChars::CLOSE_BRACE && *stack.last().unwrap() == SpecialChars::OPEN_BRACE {
+            stack.pop();
             if key_str.len() > 0 {
                 keys.push(key_str);
             }
-            is_valid_json = true;
-            break;
+            if stack.len() == 0 {
+                is_valid_json = true;
+                break;
+            } else {
+                key_str = String::new();
+            }
+            continue;
         } else if val == ' ' || val == '\n' || val == '\t' {
+            if key_str.len() > 0 {
+                key_str += val.to_string().as_str();
+            }
             continue;
         } else if val == SpecialChars::QUOTE && *stack.last().unwrap() == SpecialChars::QUOTE {
+            if key_str.len() > 0 {
+                keys.push(key_str);
+                key_str = String::new();
+            }
             stack.pop();
             continue;
         } else if val == SpecialChars::QUOTE {
@@ -49,8 +90,12 @@ fn main() {
         } else if !stack.is_empty() && *stack.last().unwrap() == SpecialChars::COLON {
             println!("stack {:?}", stack);
             stack.pop();
-            key_str += val.to_string().as_str();
-            is_non_quoted_value = true;
+            if val == SpecialChars::OPEN_BRACE {
+                stack.push(val);
+            } else {
+                key_str += val.to_string().as_str();
+                is_non_quoted_value = true;
+            }
             continue;
         } else if !stack.is_empty() && *stack.last().unwrap() == SpecialChars::QUOTE {
             key_str += val.to_string().as_str();
