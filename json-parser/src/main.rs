@@ -31,10 +31,12 @@ enum JsonValueType {
     NULL,
 }
 
-fn is_valid_json(json: &str) -> bool {
+fn is_valid_json<I>(json_iter: &mut I, val_type_input: JsonValueType) -> bool
+where
+    I: Iterator<Item = char>,
+{
     let mut stack = Vec::<char>::new();
     let mut stack_new = Vec::<char>::new();
-    let mut is_valid_json = false;
     let mut invalid_json = false;
     let mut key_str = String::new();
     let mut keys = Vec::<String>::new();
@@ -49,7 +51,19 @@ fn is_valid_json(json: &str) -> bool {
     let mut val_next = false;
     let mut map_all = HashMap::new();
 
-    for (ind, val) in json.chars().enumerate() {
+    if val_type_input == JsonValueType::ARRAY {
+        stack_new.push(SpecialChars::OPEN_SQUARE_BRACE);
+        read_val = true;
+    }
+    // let mut iter = json_iter;
+    loop {
+        let val;
+        if let Some(v) = json_iter.next() {
+            val = v;
+            // println!("val: {:?}", val);
+        } else {
+            break;
+        }
         if read_key {
             if val == SpecialChars::QUOTE {
                 println!("key_val_top: {:?}", key_val);
@@ -82,15 +96,39 @@ fn is_valid_json(json: &str) -> bool {
                 val_val += val.to_string().as_str();
             } else if val == SpecialChars::OPEN_BRACE {
                 val_type = JsonValueType::OBJECT;
-                // send to this function recursively from this index
-            } else if val == SpecialChars::OPEN_SQUARE_BRACE {
-                val_type = JsonValueType::ARRAY;
-                if is_valid_json(&json[ind..]) {
+                let ans = is_valid_json(json_iter.by_ref(), val_type);
+                if ans {
+                    key_val = String::new();
+                    val_val = String::new();
+                    val_type = JsonValueType::STRING;
+                    read_val = false;
+                    continue;
                     // index to be updated - get back same iter?
                 } else {
                     invalid_json = true;
                     break;
                 }
+                // send to this function recursively from this index
+            } else if val == SpecialChars::OPEN_SQUARE_BRACE {
+                val_type = JsonValueType::ARRAY;
+                let ans = is_valid_json(json_iter.by_ref(), val_type);
+                if ans {
+                    key_val = String::new();
+                    val_val = String::new();
+                    val_type = JsonValueType::STRING;
+                    read_val = false;
+                    continue;
+                    // index to be updated - get back same iter?
+                } else {
+                    invalid_json = true;
+                    break;
+                }
+                /*if is_valid_json(&json[ind..]) {
+                    // index to be updated - get back same iter?
+                } else {
+                    invalid_json = true;
+                    break;
+                }*/
             } else if val == 't' || val == 'f' {
                 val_type = JsonValueType::BOOLEAN;
                 val_val += val.to_string().as_str();
@@ -133,9 +171,15 @@ fn is_valid_json(json: &str) -> bool {
                 }
                 map_all.insert(key_val.clone(), val_val.clone());
                 val_parse = false;
+                if val_type_input == JsonValueType::ARRAY {
+                    read_val = true;
+                }
                 val_type = JsonValueType::STRING;
                 val_val = String::new();
                 key_val = String::new();
+                if val == SpecialChars::CLOSE_BRACE || val == SpecialChars::CLOSE_SQUARE_BRACE {
+                    break;
+                }
                 continue;
             } else {
                 if val_type == JsonValueType::STRING {
@@ -163,7 +207,7 @@ fn is_valid_json(json: &str) -> bool {
         }
         if val == SpecialChars::OPEN_BRACE || val == SpecialChars::OPEN_SQUARE_BRACE {
             stack_new.push(val);
-        } else if val == SpecialChars::QUOTE {
+        } else if val == SpecialChars::QUOTE && val_type_input != JsonValueType::ARRAY {
             stack_new.push(val);
             println!("stack_new_last: {:?}", stack_new);
             println!("key_val_end: {:?}", key_val);
@@ -174,7 +218,6 @@ fn is_valid_json(json: &str) -> bool {
     println!("stack: {:?}", stack);
     println!("keys: {:?}", keys);
 
-    println!("Is valid json: {}", is_valid_json);
     println!("Is invalid json: {}", invalid_json);
     println!("map_all: {:?}", map_all);
     println!("stack_new: {:?}", stack_new);
@@ -185,6 +228,10 @@ fn is_valid_json(json: &str) -> bool {
 
 fn main() {
     let args = Args::parse();
-    let ans = is_valid_json(&args.object);
-    println!("Is valid json final: {}", ans);
+    let mut json = args.object.chars();
+    let mut ans = is_valid_json(json.by_ref(), JsonValueType::OBJECT);
+    if args.object == "" {
+        ans = false;
+    }
+    println!("Is valid json: {}", ans);
 }
