@@ -50,6 +50,7 @@ where
     let mut key_terminated = false;
     let mut val_next = false;
     let mut map_all = HashMap::new();
+    let mut last_val_comma = false;
 
     if val_type_input == JsonValueType::ARRAY {
         stack_new.push(SpecialChars::OPEN_SQUARE_BRACE);
@@ -60,11 +61,19 @@ where
         let val;
         if let Some(v) = json_iter.next() {
             val = v;
-            // println!("val: {:?}", val);
+            if val_type_input == JsonValueType::ARRAY
+                && val == SpecialChars::CLOSE_SQUARE_BRACE
+                && stack_new.len() == 1
+            {
+                break;
+            }
+            println!("val_start: {:?}", val);
         } else {
             break;
         }
         if read_key {
+            last_val_comma = false;
+            println!("val_ready_key: {:?}", val);
             if val == SpecialChars::QUOTE {
                 println!("key_val_top: {:?}", key_val);
                 read_key = false;
@@ -112,6 +121,7 @@ where
             } else if val == SpecialChars::OPEN_SQUARE_BRACE {
                 val_type = JsonValueType::ARRAY;
                 let ans = is_valid_json(json_iter.by_ref(), val_type);
+                println!("ans: {:?}", ans);
                 if ans {
                     key_val = String::new();
                     val_val = String::new();
@@ -177,6 +187,9 @@ where
                 val_type = JsonValueType::STRING;
                 val_val = String::new();
                 key_val = String::new();
+                if val == SpecialChars::COMMA {
+                    last_val_comma = true;
+                }
                 if val == SpecialChars::CLOSE_BRACE || val == SpecialChars::CLOSE_SQUARE_BRACE {
                     break;
                 }
@@ -212,6 +225,12 @@ where
             println!("stack_new_last: {:?}", stack_new);
             println!("key_val_end: {:?}", key_val);
             read_key = true;
+        } else if val == SpecialChars::CLOSE_BRACE {
+            if last_val_comma {
+                println!("Hello");
+                invalid_json = true;
+                break;
+            }
         }
     }
 

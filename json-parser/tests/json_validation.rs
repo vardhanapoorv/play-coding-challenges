@@ -4,7 +4,7 @@ use std::process::Command;
 
 #[test]
 fn test_all_steps() {
-    let steps = vec!["step1", "step2", "step3"];
+    let steps = vec!["step1", "step2", "step3", "step4"];
     for step in steps {
         let json_files = get_json_files_in_dir(step);
         println!("json_files: {:?}", json_files);
